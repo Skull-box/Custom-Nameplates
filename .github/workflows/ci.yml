@@ -136,11 +136,12 @@ jobs:
       # Le build de release a injecté une version par -Pproject_version : ici elle est absente, le build
       # publie donc la version committée, suffixée -SNAPSHOT.
       # SNAPSHOT_MAX = floor(20 Mo / taille d'une publication), plafonné à 10 (voir publish-snapshot.sh).
+      # Une publication = jar du plugin (~5,2 Mo) + pom et sommes : floor(20 / 5,25) = 3.
       - name: Publier le SNAPSHOT mobile (jar du plugin) et élaguer
         if: env.IS_RELEASE_BRANCH == 'true'
         run: bash .github/scripts/publish-snapshot.sh
         env:
-          SNAPSHOT_MAX: '10'
+          SNAPSHOT_MAX: '3'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_USERNAME: ${{ github.actor }}
           MAVEN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
