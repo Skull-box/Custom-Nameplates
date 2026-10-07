@@ -41,3 +41,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+### Générés par la CI et le build ###
+.gradle/
+run/
+.release-version
+node_modules/
