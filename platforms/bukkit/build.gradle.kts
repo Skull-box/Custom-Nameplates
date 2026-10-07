@@ -139,3 +139,13 @@ publishing {
         }
     }
 }
+
+// Chaque JavaCompile du projet dépend de « clean » (amont), qui vide build/ : un pom ou des métadonnées générés
+// avant ce nettoyage disparaissent avant l'envoi (FileNotFoundException ... pom-default.xml). On impose donc de
+// les générer après « clean ».
+tasks.withType<GenerateMavenPom>().configureEach {
+    mustRunAfter(tasks.clean)
+}
+tasks.withType<GenerateModuleMetadata>().configureEach {
+    mustRunAfter(tasks.clean)
+}
