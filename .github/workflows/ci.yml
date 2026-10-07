@@ -62,6 +62,11 @@ jobs:
           mkdir -p ~/.gradle
           echo "org.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64" >> ~/.gradle/gradle.properties
 
+      # build.gradle.kts lit « git config user.name » (champ « builder » du jar) et échoue si rien n'est configuré,
+      # ce qui est le cas sur un runner vierge.
+      - name: Identité git du build (champ builder)
+        run: git config user.name "github-actions[bot]"
+
       - name: Node 22 (semantic-release)
         if: env.IS_RELEASE_BRANCH == 'true'
         uses: actions/setup-node@v4
