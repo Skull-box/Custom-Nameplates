@@ -7,7 +7,7 @@ name: CI
 #    déclenchent aucune release. Tant qu'aucun tag v* n'existe, la première Release est créée d'après
 #    project_version de gradle.properties (initial-release.sh).
 #    Chaque push sur main republie aussi le SNAPSHOT mobile fr.skullbox:customnameplates:<project_version>-SNAPSHOT
-#    (jar du plugin, pom sans dépendances) sur GitHub Packages, avec élagage (publish-snapshot.sh).
+#    (jar du plugin, pom sans dépendances) sur Reposilite (https://maven.skullbox.fr/snapshots, publish-snapshot.sh).
 #  - toute autre branche : prérelease glissante « build-<branche> » (titre = nom de la branche), écrasée
 #    à chaque push ; supprimée avec la branche (événement delete : il ne se déclenche que depuis le
 #    workflow de la branche par défaut, donc ce fichier doit exister sur main).
@@ -22,7 +22,6 @@ on:
 
 permissions:
   contents: write   # tag + Release
-  packages: write   # SNAPSHOT customnameplates, et suppression du paquet à élaguer
 
 # Une exécution par ref. Un événement delete partage le groupe de la branche supprimée : il annule un
 # build en cours de cette branche. On n'annule jamais une exécution de la branche par défaut (release).
@@ -35,6 +34,10 @@ jobs:
     if: github.event_name != 'delete'
     runs-on: blacksmith-2vcpu-ubuntu-2404
     env:
+      # Reposilite (maven.skullbox.fr), secrets de dépôt : jeton de LECTURE pour tout le job. L'étape de publication
+      # le remplace par le jeton d'écriture.
+      MAVEN_USERNAME: ${{ secrets.MAVEN_READ_USER }}
+      MAVEN_TOKEN: ${{ secrets.MAVEN_READ_TOKEN }}
       IS_RELEASE_BRANCH: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     steps:
       - name: Checkout
@@ -135,16 +138,12 @@ jobs:
 
       # Le build de release a injecté une version par -Pproject_version : ici elle est absente, le build
       # publie donc la version committée, suffixée -SNAPSHOT.
-      # SNAPSHOT_MAX = floor(20 Mo / taille d'une publication), plafonné à 10 (voir publish-snapshot.sh).
-      # Une publication = jar du plugin (~5,2 Mo) + pom et sommes : floor(20 / 5,25) = 3.
-      - name: Publier le SNAPSHOT mobile (jar du plugin) et élaguer
+      - name: Publier le SNAPSHOT mobile (jar du plugin)
         if: env.IS_RELEASE_BRANCH == 'true'
         run: bash .github/scripts/publish-snapshot.sh
         env:
-          SNAPSHOT_MAX: '3'
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAVEN_USERNAME: ${{ github.actor }}
-          MAVEN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_USERNAME: ${{ secrets.MAVEN_WRITE_USER }}
+          MAVEN_TOKEN: ${{ secrets.MAVEN_WRITE_TOKEN }}
 
       - name: Prérelease glissante de la branche
         if: github.event_name == 'push' && env.IS_RELEASE_BRANCH != 'true'

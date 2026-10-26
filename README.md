@@ -73,7 +73,7 @@ Fichiers : `.github/workflows/ci.yml`, `.github/scripts/`, `.releaserc.json`. Ru
   (`v3.0.37`) a été créée d'après `project_version`. L'historique d'un fork ne suit pas les conventional commits :
   peu de versions sortent seules après une synchronisation avec l'amont.
 - **Push sur `main`, aussi** : le jar du plugin est publié en SNAPSHOT mobile `fr.skullbox:customnameplates:<project_version>-SNAPSHOT`
-  sur `https://maven.pkg.github.com/Skull-box/Custom-Nameplates` (pom sans dépendances transitives). Élagage : au
-  `SNAPSHOT_MAX`-ième dépôt (voir `ci.yml`) le paquet est supprimé puis republié.
+  sur `https://maven.skullbox.fr/snapshots` (pom sans dépendances transitives). Reposilite ne garde que le dernier
+  build.
 - **Toute autre branche** : prérelease GitHub glissante `build-<branche>` (titre = nom de la branche), écrasée à
   chaque push, supprimée avec la branche.

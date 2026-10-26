@@ -105,11 +105,11 @@ tasks.register("run-paper", RunServer::class) {
     jvmArgs("-XX:+AllowEnhancedClassRedefinition")
 }
 
-// SNAPSHOT mobile fr.skullbox:customnameplates:<project_version>-SNAPSHOT sur les GitHub Packages de CE dépôt
+// SNAPSHOT mobile fr.skullbox:customnameplates:<project_version>-SNAPSHOT sur Reposilite
 // (.github/scripts/publish-snapshot.sh, à chaque push sur main). On publie le jar du plugin tel qu'on le dépose
 // sur un serveur (CustomNameplates-Bukkit-<version>.jar), sans « from components » : le pom publié n'a aucune
-// dépendance, donc rien de transitif chez les consommateurs. artifactId en minuscules (GitHub refuse les
-// majuscules, HTTP 422). project_version (gradle.properties) n'est pas un SNAPSHOT : la version Maven porte le
+// dépendance, donc rien de transitif chez les consommateurs. artifactId en minuscules (hérité de GitHub Packages,
+// qui refusait les majuscules). project_version (gradle.properties) n'est pas un SNAPSHOT : la version Maven porte le
 // suffixe, car une version fixe ne peut pas être republiée (HTTP 409). Seul ce module publie : le module :api
 // garde sa publication amont (repo.momirealms.net), que la CI ne lance jamais.
 publishing {
@@ -130,8 +130,8 @@ publishing {
     }
     repositories {
         maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/Skull-box/Custom-Nameplates")
+            name = "Reposilite"
+            url = uri("https://maven.skullbox.fr/snapshots")
             credentials {
                 username = System.getenv("MAVEN_USERNAME")
                 password = System.getenv("MAVEN_TOKEN")
