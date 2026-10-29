@@ -47,23 +47,13 @@ jobs:
 
       # Gradle n'utilise pas settings.xml : pas de server-id, les identifiants passent par l'environnement
       # (MAVEN_USERNAME / MAVEN_TOKEN à la publication). Aucune dépendance privée à lire.
-      # Le projet demande deux toolchains : JDK 17 (module :api) et JDK 21 (plateforme Bukkit). Le dernier JDK
-      # listé sert à lancer Gradle.
-      - name: JDK 17 + 21 (Temurin) + cache Gradle
+      # Tous les modules compilent avec une toolchain JDK 25, qui sert aussi à lancer Gradle.
+      - name: JDK 25 (Temurin) + cache Gradle
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: |
-            17
-            21
+          java-version: '25'
           cache: gradle
-
-      # setup-java exporte JAVA_HOME_17_X64 et JAVA_HOME_21_X64 : on les déclare à Gradle, qui sinon ne
-      # retrouve pas les toolchains installées dans le cache d'outils du runner.
-      - name: Toolchains Gradle (JDK 17 et 21)
-        run: |
-          mkdir -p ~/.gradle
-          echo "org.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64" >> ~/.gradle/gradle.properties
 
       # build.gradle.kts lit « git config user.name » (champ « builder » du jar) et échoue si rien n'est configuré,
       # ce qui est le cas sur un runner vierge.

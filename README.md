@@ -13,7 +13,7 @@
 ## How to Build
 
 #### Command Line
-Install JDK 17 & 21. \
+Install JDK 25. \
 Start terminal and change directory to the project folder.\
 Execute ".\gradlew build" and get the artifact under /target folder
 
@@ -48,8 +48,7 @@ dependencies {
 
 ## Compiler en local (fork Skull-box)
 
-Prérequis : JDK 17 **et** 21 (le module `:api` compile avec une toolchain 17, la plateforme Bukkit avec une 21 ;
-Gradle les retrouve s'ils sont installés, il ne les télécharge pas). Le wrapper Gradle est dans le dépôt, rien
+Prérequis : JDK 25 (toolchain de tous les modules ; Gradle le retrouve s'il est installé, il ne le télécharge pas). Le wrapper Gradle est dans le dépôt, rien
 d'autre à installer. Aucune dépendance privée : pas de jeton à fournir.
 
 ```bash

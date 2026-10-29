@@ -27,7 +27,7 @@ dependencies {
     // WorldGuard
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.9")
     // Platform
-    compileOnly("dev.folia:folia-api:${rootProject.properties["paper_version"]}-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:26.2.build.134-stable")
     // Chat
     compileOnly(files("libs/VentureChat-3.7.1.jar"))
     compileOnly(files("libs/TrChat-2.0.11.jar"))
@@ -67,15 +67,15 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
-    options.release.set(21)
+    options.release.set(25)
     dependsOn(tasks.clean)
 }

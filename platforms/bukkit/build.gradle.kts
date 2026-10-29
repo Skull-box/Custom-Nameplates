@@ -24,7 +24,7 @@ dependencies {
     implementation(project(":backend"))
     implementation(project(":platforms:bukkit:compatibility"))
 
-    compileOnly("dev.folia:folia-api:${rootProject.properties["paper_version"]}-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:26.2.build.134-stable")
     compileOnly("me.clip:placeholderapi:${rootProject.properties["placeholder_api_version"]}")
     compileOnly("com.mojang:datafixerupper:10.0.21")
     compileOnly("com.mojang:brigadier:1.3.10")
@@ -87,16 +87,16 @@ artifacts {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
-    options.release.set(21)
+    options.release.set(25)
     dependsOn(tasks.clean)
 }
 
@@ -104,10 +104,10 @@ tasks.register("run-paper", RunServer::class) {
     group = "run paper"
     workingDir("run")
     pluginJars.from(tasks.shadowJar.flatMap { it.archiveFile })
-    minecraftVersion("1.21.11")
+    minecraftVersion("26.2")
     javaLauncher = javaToolchains.launcherFor {
         vendor = JvmVendorSpec.JETBRAINS
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
     jvmArgs("-Dsun.stdout.encoding=UTF-8")
     jvmArgs("-Dsun.stderr.encoding=UTF-8")
