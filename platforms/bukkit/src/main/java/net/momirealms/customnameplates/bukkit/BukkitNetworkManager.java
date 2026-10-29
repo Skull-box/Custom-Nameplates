@@ -74,17 +74,28 @@ public class BukkitNetworkManager implements PacketSender, PipelineInjector {
             };
         } else {
             packetConsumer = (player, packet) -> {
-                Vector3 vector3 = player.position();
-                Location location = new Location(Bukkit.getWorld(player.world()), vector3.x(), vector3.y(), vector3.z());
-                plugin.getScheduler().executeSync(() -> {
-                    try {
-                        Reflections.method$SendPacket.invoke(
-                                Reflections.field$PlayerConnection.get(
-                                        Reflections.method$CraftPlayer$getHandle.invoke(player.player())), packet);
-                    } catch (ReflectiveOperationException e) {
-                        throw new RuntimeException(e);
-                    }
-                }, location);
+                Player bukkitPlayer = (Player) player.player();
+                if (VersionHelper.isFolia()) {
+                    // Follow the player across regions/worlds and discard tasks when the entity retires.
+                    bukkitPlayer.getScheduler().execute(plugin.getBootstrap(), () -> {
+                        if (!bukkitPlayer.isOnline()) return;
+                        try {
+                            Reflections.method$SendPacket.invoke(Reflections.field$PlayerConnection.get(Reflections.method$CraftPlayer$getHandle.invoke(bukkitPlayer)), packet);
+                        } catch (ReflectiveOperationException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }, null, 1L);
+                } else {
+                    Vector3 vector3 = player.position();
+                    Location location = new Location(Bukkit.getWorld(player.world()), vector3.x(), vector3.y(), vector3.z());
+                    plugin.getScheduler().executeSync(() -> {
+                        try {
+                            Reflections.method$SendPacket.invoke(Reflections.field$PlayerConnection.get(Reflections.method$CraftPlayer$getHandle.invoke(player.player())), packet);
+                        } catch (ReflectiveOperationException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }, location);
+                }
             };
         }
         this.active = true;
@@ -289,15 +300,17 @@ public class BukkitNetworkManager implements PacketSender, PipelineInjector {
 
         @Override
         public void write(ChannelHandlerContext context, Object packet, ChannelPromise channelPromise) throws Exception {
+            PacketEvent event = new PacketEvent(packet);
             try {
-                PacketEvent event = new PacketEvent(packet);
                 plugin.getPlatform().onPacketSend(player, event);
-                if (event.cancelled()) return;
-                super.write(context, packet, channelPromise);
             } catch (Throwable e) {
-                plugin.getPluginLogger().severe("An error occurred when reading packets", e);
+                plugin.getPluginLogger().severe("An error occurred when processing an outbound packet", e);
                 super.write(context, packet, channelPromise);
+                return;
             }
+            if (event.cancelled()) return;
+            super.write(context, packet, channelPromise);
+            event.runAfterSendTasks(e -> plugin.getPluginLogger().severe("An error occurred in an after-send packet task", e));
         }
     }
 

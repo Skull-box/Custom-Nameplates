@@ -20,6 +20,7 @@ package net.momirealms.customnameplates.api;
 import io.netty.channel.Channel;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import net.momirealms.customnameplates.api.feature.Feature;
 import net.momirealms.customnameplates.api.feature.TimeStampData;
 import net.momirealms.customnameplates.api.feature.tag.TeamView;
@@ -33,8 +34,6 @@ import net.momirealms.customnameplates.api.storage.data.PlayerData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.ref.Reference;
-import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -115,11 +114,11 @@ public abstract class AbstractCNPlayer<P> implements CNPlayer {
     @Override
     public List<Placeholder> activePlaceholdersToRefresh() {
         Placeholder[] activePlaceholders = activePlaceholders();
-        List<Placeholder> placeholderWithChildren = new ObjectArrayList<>();
+        Set<Placeholder> placeholderWithChildren = new ObjectLinkedOpenHashSet<>();
         for (Placeholder placeholder : activePlaceholders) {
             childrenFirstList(placeholder, placeholderWithChildren);
         }
-        return placeholderWithChildren.stream().distinct().toList();
+        return List.copyOf(placeholderWithChildren);
     }
 
     private String updatePlayerPlaceholder(PlayerPlaceholder placeholder) {
@@ -187,11 +186,10 @@ public abstract class AbstractCNPlayer<P> implements CNPlayer {
     @Override
     public void forceUpdatePlaceholders(Set<Placeholder> placeholders, Collection<CNPlayer> others) {
         if (placeholders.isEmpty()) return;
-        List<Placeholder> placeholderWithChildren = new ObjectArrayList<>();
+        Set<Placeholder> placeholderWithChildren = new ObjectLinkedOpenHashSet<>();
         for (Placeholder placeholder : placeholders) {
             childrenFirstList(placeholder, placeholderWithChildren);
         }
-        placeholderWithChildren = placeholderWithChildren.stream().distinct().toList();
         for (Placeholder placeholder : placeholderWithChildren) {
              if (placeholder instanceof PlayerPlaceholder playerPlaceholder) {
                  updatePlayerPlaceholder(playerPlaceholder);
@@ -203,15 +201,12 @@ public abstract class AbstractCNPlayer<P> implements CNPlayer {
         }
     }
 
-    private void childrenFirstList(Placeholder placeholder, List<Placeholder> list) {
-        if (placeholder.children().isEmpty()) {
-            list.add(placeholder);
-        } else {
-            for (Placeholder child : placeholder.children()) {
-                childrenFirstList(child, list);
-            }
-            list.add(placeholder);
+    private void childrenFirstList(Placeholder placeholder, Set<Placeholder> list) {
+        if (list.contains(placeholder)) return;
+        for (Placeholder child : placeholder.children()) {
+            childrenFirstList(child, list);
         }
+        list.add(placeholder);
     }
 
     private void parentLastList(Placeholder placeholder, List<Placeholder> list) {
@@ -663,12 +658,15 @@ public abstract class AbstractCNPlayer<P> implements CNPlayer {
 
     @Override
     public void save() {
-        plugin.getStorageManager().dataSource().updatePlayerData(PlayerData.builder()
+        this.plugin.getStorageManager().dataSource().updatePlayerData(
+            PlayerData.builder()
                 .uuid(uuid())
                 .nameplate(nameplateData())
                 .bubble(bubbleData())
                 .previewTags(isToggleablePreviewing())
-                .build(), plugin.getScheduler().async());
+                .build(),
+            this.plugin.getScheduler().async()
+        );
     }
 
     @Override

@@ -22,6 +22,8 @@ dependencies {
     compileOnly(project(":backend"))
     compileOnly("net.kyori:adventure-api:${rootProject.properties["adventure_bundle_version"]}")
     compileOnly("dev.dejvokep:boosted-yaml:${rootProject.properties["boosted_yaml_version"]}")
+    // Permission
+    compileOnly("net.luckperms:api:5.4")
     // WorldGuard
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.9")
     // Platform
@@ -48,7 +50,7 @@ dependencies {
     compileOnly(files("libs/Chatty-3.0.0-SNAPSHOT.jar"))
     // Emoji
     compileOnly("beer.devs:itemsadder-api:4.0.17")
-    compileOnly("io.th0rgal:oraxen:1.182.0")
+    compileOnly("io.th0rgal:oraxen:1.217.0")
     // PAPI
     compileOnly("me.clip:placeholderapi:${rootProject.properties["placeholder_api_version"]}")
     // Disguise
@@ -59,7 +61,7 @@ dependencies {
     compileOnly("org.geysermc.floodgate:api:2.2.3-SNAPSHOT")
     // Cosmetics
     compileOnly("com.github.FrancoBM12:API-MagicCosmetics:2.2.9")
-    compileOnly("com.github.sculmix:API-ECosmetics:1.0.1")
+    compileOnly("com.github.flestiz:API-ECosmetics:1.0.2")
     compileOnly("com.hibiscusmc:HMCCosmetics:2.8.3")
     compileOnly("me.lojosho:HibiscusCommons:0.8.3")
 }

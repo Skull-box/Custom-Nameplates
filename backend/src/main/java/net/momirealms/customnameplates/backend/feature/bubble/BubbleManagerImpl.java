@@ -29,6 +29,7 @@ import dev.dejvokep.boostedyaml.settings.updater.UpdaterSettings;
 import dev.dejvokep.boostedyaml.utils.format.NodeRole;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.momirealms.customnameplates.api.CNPlayer;
 import net.momirealms.customnameplates.api.ConfigManager;
 import net.momirealms.customnameplates.api.CustomNameplates;
@@ -42,6 +43,7 @@ import net.momirealms.customnameplates.api.feature.bubble.ChannelMode;
 import net.momirealms.customnameplates.api.feature.tag.TagRenderer;
 import net.momirealms.customnameplates.api.helper.AdventureHelper;
 import net.momirealms.customnameplates.api.requirement.Requirement;
+import net.momirealms.customnameplates.api.util.Billboard;
 import net.momirealms.customnameplates.api.util.ConfigUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,6 +53,8 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class BubbleManagerImpl implements BubbleManager, ChatListener {
+    private static final TagResolver IGNORE_HOVER = TagResolver.resolver(
+            "hover", (arguments, context) -> net.kyori.adventure.text.minimessage.tag.Tag.styling());
 
     private final CustomNameplates plugin;
     private final Map<String, Bubble> bubbles = new Object2ObjectOpenHashMap<>();
@@ -61,10 +65,13 @@ public class BubbleManagerImpl implements BubbleManager, ChatListener {
     private int stayDuration;
     private int appearDuration;
     private int disappearDuration;
+    private double durationPerCharacter;
+    private int maxStayDuration;
     private float viewRange;
     private Set<String> blacklistChannels;
     private ChannelMode channelMode;
     private final Map<String, BubbleConfig> bubbleConfigs = new Object2ObjectOpenHashMap<>();
+    private final Map<String, BubbleConfig> bubbleConfigsByCommand = new Object2ObjectOpenHashMap<>();
 
     public BubbleManagerImpl(CustomNameplates plugin) {
         this.plugin = plugin;
@@ -74,6 +81,7 @@ public class BubbleManagerImpl implements BubbleManager, ChatListener {
     public void unload() {
         this.bubbles.clear();
         this.bubbleConfigs.clear();
+        this.bubbleConfigsByCommand.clear();
     }
 
     @Override
@@ -89,9 +97,16 @@ public class BubbleManagerImpl implements BubbleManager, ChatListener {
         return this.bubbles.get(id);
     }
 
+    @Nullable
     @Override
-    public @Nullable BubbleConfig bubbleConfigById(String id) {
+    public BubbleConfig bubbleConfigById(String id) {
         return this.bubbleConfigs.get(id);
+    }
+
+    @Nullable
+    @Override
+    public BubbleConfig bubbleConfigByCommand(String id) {
+        return this.bubbleConfigsByCommand.get(id);
     }
 
     @Override
@@ -154,6 +169,16 @@ public class BubbleManagerImpl implements BubbleManager, ChatListener {
     }
 
     @Override
+    public double durationPerCharacter() {
+        return durationPerCharacter;
+    }
+
+    @Override
+    public int maxStayDuration() {
+        return maxStayDuration;
+    }
+
+    @Override
     public int appearDuration() {
         return appearDuration;
     }
@@ -210,7 +235,9 @@ public class BubbleManagerImpl implements BubbleManager, ChatListener {
         viewBubbleRequirements = plugin.getRequirementManager().parseRequirements(document.getSection("viewer-requirements"));
         defaultBubbleId = document.getString("default-bubble", "chat");
         yOffset = document.getDouble("y-offset", 0.2);
-        stayDuration = document.getInt("stay-duration", 160);
+        stayDuration = document.getInt("stay-duration", 100);
+        durationPerCharacter = document.getDouble("duration-per-character", 2.0);
+        maxStayDuration = document.getInt("max-stay-duration", 0);
         appearDuration = document.getInt("appear-duration", 20);
         disappearDuration = document.getInt("disappear-duration", 10);
         viewRange = document.getFloat("view-range", 0.5f);
@@ -226,8 +253,9 @@ public class BubbleManagerImpl implements BubbleManager, ChatListener {
                     for (int i = 0; i < maxLines; i++) {
                         bubbleArray[i] = bubbleById(inner.getString("lines." + (i+1)));
                     }
-                    this.bubbleConfigs.put(key, BubbleConfig.builder()
+                    BubbleConfig bubble = BubbleConfig.builder()
                             .id(key)
+                            .commandSuggestion(inner.getString("command-suggestion", key))
                             .maxLines(maxLines)
                             .bubbles(bubbleArray)
                             .displayName(inner.getString("display-name", key))
@@ -236,7 +264,12 @@ public class BubbleManagerImpl implements BubbleManager, ChatListener {
                             .textPrefix(inner.getString("text-prefix", "").replace("{namespace}", ConfigManager.namespace()))
                             .textSuffix(inner.getString("text-suffix", ""))
                             .scale(ConfigUtils.vector3(inner.getString("scale", "1,1,1")))
-                            .build());
+                            .hasShadow(inner.getBoolean("has-shadow", false))
+                            .billboard(inner.getEnum("billboard", Billboard.class, Billboard.CENTER))
+                            .affectedByScaling(inner.getBoolean("affected-by-scale-attribute", true))
+                            .build();
+                    this.bubbleConfigs.put(bubble.id(), bubble);
+                    this.bubbleConfigsByCommand.put(bubble.commandSuggestion(), bubble);
                 }
             }
         }
@@ -305,6 +338,8 @@ public class BubbleManagerImpl implements BubbleManager, ChatListener {
         }
 
         String fullText = config.textPrefix().fastCreate(player).render(player) + message.replace("\\", "\\\\") + config.textSuffix().fastCreate(player).render(player);
+        // Bubbles only display text; discard hover payloads before layout and component conversion.
+        fullText = AdventureHelper.miniMessage().serialize(AdventureHelper.miniMessage().deserialize(fullText, IGNORE_HOVER));
         int lines = plugin.getAdvanceManager().getLines(fullText, config.lineWidth());
         if (lines > config.maxLines()) return;
         if (lines <= 0) return;
@@ -328,9 +363,10 @@ public class BubbleManagerImpl implements BubbleManager, ChatListener {
             advance = config.lineWidth();
         }
 
+        int textLength = AdventureHelper.stripTags(message).length();
         BubbleTag bubbleTag = new BubbleTag(player, renderer, channel, config,
                 AdventureHelper.miniMessageToMinecraftComponent(fullText),
-                bubble == null ? null : AdventureHelper.miniMessageToMinecraftComponent(AdventureHelper.surroundWithNameplatesFont(bubble.createImage(advance, 1,1))), this);
+                bubble == null ? null : AdventureHelper.miniMessageToMinecraftComponent(AdventureHelper.surroundWithNameplatesFont(bubble.createImage(advance, 1,1))), this, textLength);
         renderer.addTag(bubbleTag);
         if (delay != 0) {
             plugin.getScheduler().asyncLater(() -> bubbleTag.setCanShow(true), delay * 50L, TimeUnit.MILLISECONDS);

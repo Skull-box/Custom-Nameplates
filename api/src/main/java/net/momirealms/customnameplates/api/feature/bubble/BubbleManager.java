@@ -64,6 +64,14 @@ public interface BubbleManager extends Reloadable {
     BubbleConfig bubbleConfigById(String id);
 
     /**
+     * Retrieves a Bubble configuration by its command suggestion
+     *
+     * @param suggestion command suggestion
+     * @return the BubbleConfig instance, or null if not found
+     */
+    @Nullable BubbleConfig bubbleConfigByCommand(String suggestion);
+
+    /**
      * Checks if a player has access to a specific Bubble by its ID.
      *
      * @param player the player to check
@@ -128,6 +136,21 @@ public interface BubbleManager extends Reloadable {
      * @return the stay duration in ticks
      */
     int stayDuration();
+
+    /**
+     * Returns the additional duration (in ticks) added per visible character in the Bubble text.
+     *
+     * @return the duration per character in ticks
+     */
+    double durationPerCharacter();
+
+    /**
+     * Returns the maximum duration (in ticks) for which the Bubble remains visible.
+     * A value of 0 means no maximum.
+     *
+     * @return the maximum stay duration in ticks
+     */
+    int maxStayDuration();
 
     /**
      * Returns the duration (in ticks) for the Bubble to appear.

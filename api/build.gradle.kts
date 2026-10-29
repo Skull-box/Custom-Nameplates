@@ -21,7 +21,7 @@ dependencies {
     // Cache
     compileOnly("com.github.ben-manes.caffeine:caffeine:${rootProject.properties["caffeine_version"]}")
     // Netty
-    compileOnly("io.netty:netty-all:4.1.117.Final")
+    compileOnly("io.netty:netty-all:${rootProject.properties["netty_version"]}")
     // GSON
     compileOnly("com.google.code.gson:gson:${rootProject.properties["gson_version"]}")
     // Fast util
@@ -39,17 +39,17 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(21)
     }
     withSourcesJar()
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
-    options.release.set(17)
+    options.release.set(21)
     dependsOn(tasks.clean)
 }
 

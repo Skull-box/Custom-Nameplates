@@ -50,17 +50,20 @@ public class BubblesForceEquipCommand extends BukkitCommandFeature<CommandSender
     public Command.Builder<? extends CommandSender> assembleCommand(CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
                 .required("player", PlayerParser.playerParser())
-                .required("bubble", StringParser.stringComponent().suggestionProvider(new SuggestionProvider<>() {
+                .required("bubble", StringParser.stringComponent(StringParser.StringMode.GREEDY_FLAG_YIELDING).suggestionProvider(new SuggestionProvider<>() {
                     @Override
                     public @NonNull CompletableFuture<? extends @NonNull Iterable<? extends @NonNull Suggestion>> suggestionsFuture(@NonNull CommandContext<Object> context, @NonNull CommandInput input) {
-                        return CompletableFuture.completedFuture(plugin.getBubbleManager().bubbleConfigs().stream().map(it -> Suggestion.suggestion(it.id())).toList());
+                        return CompletableFuture.completedFuture(plugin.getBubbleManager().bubbleConfigs().stream().map(it -> Suggestion.suggestion(it.commandSuggestion())).toList());
                     }
                 }))
                 .handler(context -> {
                     if (!ConfigManager.bubbleModule()) return;
                     String bubbleId = context.get("bubble");
                     Player bukkitPlayer = context.get("player");
-                    BubbleConfig bubble = plugin.getBubbleManager().bubbleConfigById(bubbleId);
+                    BubbleConfig bubble = plugin.getBubbleManager().bubbleConfigByCommand(bubbleId);
+                    if (bubble == null) {
+                        bubble = plugin.getBubbleManager().bubbleConfigById(bubbleId);
+                    }
                     if (bubble == null) {
                         handleFeedback(context, MessageConstants.COMMAND_BUBBLES_FORCE_EQUIP_FAILURE_NOT_EXISTS, Component.text(bukkitPlayer.getName()), Component.text(bubbleId));
                         return;
@@ -73,9 +76,9 @@ public class BubblesForceEquipCommand extends BukkitCommandFeature<CommandSender
                         plugin.getPluginLogger().warn("Player " + player.name() + " tried to equip a bubble when data not loaded");
                         return;
                     }
-                    player.setBubbleData(bubbleId);
+                    player.setBubbleData(bubble.id());
                     player.save();
-                    handleFeedback(context, MessageConstants.COMMAND_BUBBLES_FORCE_EQUIP_SUCCESS, Component.text(bukkitPlayer.getName()), Component.text(bubbleId), AdventureHelper.miniMessage(bubble.displayName()));
+                    handleFeedback(context, MessageConstants.COMMAND_BUBBLES_FORCE_EQUIP_SUCCESS, Component.text(bukkitPlayer.getName()), AdventureHelper.miniMessage(bubble.displayName()));
                 });
     }
 

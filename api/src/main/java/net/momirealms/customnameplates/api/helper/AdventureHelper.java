@@ -27,6 +27,7 @@ import net.kyori.adventure.text.serializer.json.JSONOptions;
 import net.kyori.adventure.text.serializer.json.legacyimpl.NBTLegacyHoverEventSerializer;
 import net.momirealms.customnameplates.api.ConfigManager;
 import net.momirealms.customnameplates.api.CustomNameplates;
+import net.momirealms.customnameplates.common.text.minimessage.HeadTextureTag;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -52,8 +53,9 @@ public class AdventureHelper {
     private final Cache<String, String> jsonToMiniMessageCache;
 
     private AdventureHelper() {
-        this.miniMessage = MiniMessage.builder().build();
-        this.miniMessageStrict = MiniMessage.builder().strict(true).build();
+        MiniMessage.Builder miniMessageBuilder = MiniMessage.builder().editTags(tags -> tags.resolver(HeadTextureTag.INSTANCE));
+        this.miniMessage = miniMessageBuilder.build();
+        this.miniMessageStrict = miniMessageBuilder.strict(true).build();
         GsonComponentSerializer.Builder builder = GsonComponentSerializer.builder();
         if (!VersionHelper.isVersionNewerThan1_20_5()) {
             builder.legacyHoverEventSerializer(NBTLegacyHoverEventSerializer.get());
@@ -354,6 +356,28 @@ public class AdventureHelper {
                             .append(">");
                     i += 12;
                 }
+                case '#' -> {
+                    if (i + 7 >= chars.length
+                            || !isHexColorCode(chars[i+2])
+                            || !isHexColorCode(chars[i+3])
+                            || !isHexColorCode(chars[i+4])
+                            || !isHexColorCode(chars[i+5])
+                            || !isHexColorCode(chars[i+6])
+                            || !isHexColorCode(chars[i+7])) {
+                        stringBuilder.append(chars[i]);
+                        continue;
+                    }
+                    stringBuilder
+                            .append("<#")
+                            .append(chars[i+2])
+                            .append(chars[i+3])
+                            .append(chars[i+4])
+                            .append(chars[i+5])
+                            .append(chars[i+6])
+                            .append(chars[i+7])
+                            .append(">");
+                    i += 6;
+                }
                 default -> {
                     stringBuilder.append(chars[i]);
                     continue;
@@ -362,5 +386,11 @@ public class AdventureHelper {
             i++;
         }
         return stringBuilder.toString();
+    }
+
+    private static boolean isHexColorCode(char c) {
+        return c >= '0' && c <= '9' ||
+                c >= 'a' && c <= 'f' ||
+                c >= 'A' && c <= 'F';
     }
 }

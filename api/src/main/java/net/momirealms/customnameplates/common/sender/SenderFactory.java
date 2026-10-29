@@ -25,7 +25,6 @@
 
 package net.momirealms.customnameplates.common.sender;
 
-import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.momirealms.customnameplates.common.plugin.NameplatesPlugin;
 import net.momirealms.customnameplates.common.util.Tristate;
@@ -53,8 +52,6 @@ public abstract class SenderFactory<P extends NameplatesPlugin, T> implements Au
     protected abstract UUID getUniqueId(T sender);
 
     protected abstract String getName(T sender);
-
-    public abstract Audience getAudience(T sender);
 
     protected abstract void sendMessage(T sender, Component message);
 

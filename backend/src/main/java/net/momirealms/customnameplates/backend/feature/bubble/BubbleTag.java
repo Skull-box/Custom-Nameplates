@@ -44,6 +44,7 @@ public class BubbleTag extends AbstractTag {
     private final Object background;
     private final BubbleManager manager;
     private final BubbleConfig bubbleConfig;
+    private final int stayDuration;
     private int ticker;
     private boolean canShow;
     private final String channel;
@@ -52,13 +53,19 @@ public class BubbleTag extends AbstractTag {
     protected final int subEntityID = SelfIncreaseEntityID.getAndIncrease();
     protected final UUID subEntityUUID = UUID.randomUUID();
 
-    public BubbleTag(CNPlayer owner, TagRenderer renderer, String channel, BubbleConfig bubbleConfig, Object text, @Nullable Object background, BubbleManager bubbleManager) {
+    public BubbleTag(CNPlayer owner, TagRenderer renderer, String channel, BubbleConfig bubbleConfig, Object text, @Nullable Object background, BubbleManager bubbleManager, int textLength) {
         super(owner, renderer);
         this.text = text;
         this.manager = bubbleManager;
         this.bubbleConfig = bubbleConfig;
         this.channel = channel;
         this.background = background;
+        int base = bubbleManager.stayDuration();
+        int extra = (int) (textLength * bubbleManager.durationPerCharacter());
+        int duration = base + extra;
+        int max = bubbleManager.maxStayDuration();
+        if (max > 0 && duration > max) duration = max;
+        this.stayDuration = duration;
     }
 
     @Override
@@ -70,10 +77,10 @@ public class BubbleTag extends AbstractTag {
                 owner.position().add(0, (1.8 + (affectedByCrouching() && tracker.isCrouching() && !owner.isFlying() ? -0.3 : 0) + renderer.hatOffset()) * (affectedByScaling() ? tracker.getScale() : 1), 0),
                 0f, 0f, 0d,
                 -1, 0, 0,
-                text, bubbleConfig.backgroundColor(), (byte) -1, false, false, false,
-                Alignment.CENTER, manager.viewRange(), 0.0f, 1.0f,
+                text, bubbleConfig.backgroundColor(), (byte) -1, bubbleConfig.hasShadow(), false, false,
+                Alignment.CENTER, bubbleConfig.billboard(), manager.viewRange(), 0.0f, 1.0f,
                 new Vector3(0.001, 0.001, 0.001),
-                affectedByScaling() ? translation.multiply(tracker.getScale()).add(0.01, 0, 0.01) : translation,
+                affectedByScaling() ? translation.multiply(tracker.getScale()).add(0.02, 0, 0.02) : translation.add(0.02, 0, 0.02),
                 bubbleConfig.lineWidth(),
                 (affectedByCrouching() && tracker.isCrouching())
         ));
@@ -84,7 +91,7 @@ public class BubbleTag extends AbstractTag {
                     0f, 0f, 0d,
                     -1, 0, 0,
                     background, 0, (byte) -1, false, false, false,
-                    Alignment.CENTER, manager.viewRange(), 0.0f, 1.0f,
+                    Alignment.CENTER, bubbleConfig.billboard(), manager.viewRange(), 0.0f, 1.0f,
                     new Vector3(0.001, 0.001, 0.001),
                     affectedByScaling() ? translation.multiply(tracker.getScale()) : translation,
                     2048,
@@ -161,7 +168,7 @@ public class BubbleTag extends AbstractTag {
     @Override
     public void tick() {
         if (!canShow) return;
-        if (ticker >= manager.stayDuration()) {
+        if (ticker >= stayDuration) {
             renderer.removeTag(this);
             return;
         }
@@ -172,7 +179,7 @@ public class BubbleTag extends AbstractTag {
     public void onPlayerScaleUpdate(CNPlayer viewer, double scale) {
         Consumer<List<Object>> modifier1 = CustomNameplates.getInstance().getPlatform().createScaleModifier(scale(viewer).multiply(scale));
         Vector3 translation = translation(viewer);
-        Consumer<List<Object>> modifier2 = CustomNameplates.getInstance().getPlatform().createTranslationModifier(translation.multiply(scale).add(0.01,0,0.01));
+        Consumer<List<Object>> modifier2 = CustomNameplates.getInstance().getPlatform().createTranslationModifier(translation.multiply(scale).add(0.02,0,0.02));
         Object packet1 = CustomNameplates.getInstance().getPlatform().updateTextDisplayPacket(entityID, List.of(modifier1, modifier2));
         if (background != null) {
             Consumer<List<Object>> modifier3 = CustomNameplates.getInstance().getPlatform().createTranslationModifier(translation.multiply(scale));
@@ -188,10 +195,10 @@ public class BubbleTag extends AbstractTag {
         Tracker tracker = owner.getTracker(viewer);
         if (tracker != null) {
             Vector3 translation = translation(viewer);
-            Consumer<List<Object>> modifier1 = CustomNameplates.getInstance().getPlatform().createTranslationModifier(translation.multiply(tracker.getScale()).add(0.01,0,0.01));
+            Consumer<List<Object>> modifier1 = CustomNameplates.getInstance().getPlatform().createTranslationModifier(affectedByScaling() ? translation.multiply(tracker.getScale()).add(0.02,0,0.02) : translation.add(0.02,0,0.02));
             Object packet1 = CustomNameplates.getInstance().getPlatform().updateTextDisplayPacket(entityID, List.of(modifier1));
             if (background != null) {
-                Consumer<List<Object>> modifier2 = CustomNameplates.getInstance().getPlatform().createTranslationModifier(translation.multiply(tracker.getScale()));
+                Consumer<List<Object>> modifier2 = CustomNameplates.getInstance().getPlatform().createTranslationModifier(affectedByScaling() ? translation.multiply(tracker.getScale()) : translation);
                 Object packet2 = CustomNameplates.getInstance().getPlatform().updateTextDisplayPacket(subEntityID, List.of(modifier2));
                 CustomNameplates.getInstance().getPacketSender().sendPacket(viewer, List.of(packet1, packet2));
             } else {
@@ -308,7 +315,7 @@ public class BubbleTag extends AbstractTag {
 
     @Override
     public boolean affectedByScaling() {
-        return true;
+        return bubbleConfig.affectedByScaling();
     }
 
     @Override
